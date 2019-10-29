@@ -4,23 +4,27 @@
 #include <string>
 #include <vector>
 
-#include "Calculator.hpp"
+#include <readline/readline.h>
+#include <readline/history.h>
 
-using std::cerr;
-using std::cin;
-using std::cout;
+#include "Calculator.hpp"
 
 int main()
 {
-    std::string command;
     Calculator calc;
 
-    while (getline(cin, command))
+    char const* command;
+    while ((command = readline(">>> ")) != nullptr)
     {
         auto temp = calc.execute(command);
         if (temp.has_value())
         {
-            cout << temp.value() << std::endl;
+            std::cout << temp.value() << std::endl;
         }
+        if (*command)
+        {
+            add_history(command);
+        }
+        std::free((void*) command);
     }
 }
