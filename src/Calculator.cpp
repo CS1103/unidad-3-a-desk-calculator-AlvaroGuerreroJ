@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <iostream>
 #include <functional>
 #include <list>
 #include <map>
@@ -15,68 +16,35 @@
 
 #include "Calculator.hpp"
 
-#include <iostream>
 #include "prettyprint.hpp"
 
-std::vector<std::string> Calculator::reserved_words = {};
+Calculator::Calculator(Calculator const& other)
+    : symbol_table(other.symbol_table)
+{
+}
+
+Calculator& Calculator::operator=(const Calculator &other)
+{
+    symbol_table = other.symbol_table;
+    return *this;
+}
 
 std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculator&, std::string)>>> const Calculator::unary_ops = {
     {
+        // TODO: Maybe factor this out.
         {"-",
          [](Calculator& calc, std::string a) {
-             calc_type temp;
-             if (is_symbol(a))
-             {
-                 temp = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> temp;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-             return calc_option(std::to_string(-temp));
+             return calc_option(std::to_string(-calc.get_value(a)));
          }
         },
         {"~",
          [](Calculator& calc, std::string a) {
-             calc_type temp;
-             if (is_symbol(a))
-             {
-                 temp = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> temp;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-             return calc_option(std::to_string(~temp));
+             return calc_option(std::to_string(~calc.get_value(a)));
             }
         },
         {"+",
          [](Calculator& calc, std::string a) {
-             calc_type temp;
-             if (is_symbol(a))
-             {
-                 temp = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> temp;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-             return calc_option(std::to_string(temp));
+             return calc_option(std::to_string(+calc.get_value(a)));
             }
         }
     }
@@ -85,217 +53,37 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
 std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculator &, std::string, std::string)>>> const Calculator::binary_ops = {
     {
         {"**",
-         [](Calculator &calc, std::string a, std::string b) {
-             calc_type a_val;
-             if (is_symbol(a))
-             {
-                 a_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> a_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(b);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not a literal or symbol.");
-             }
-
-             return calc_option(std::to_string(Calculator::calc_type(std::pow(a_val, b_val))));
+         [](Calculator &calc, std::string const a, std::string const b) {
+             return calc_option(std::to_string(calc_type(std::pow(calc.get_value(a), calc.get_value(b)))));
          }
         }
     },
     {
         {"*",
-         [](Calculator &calc, std::string a, std::string b) {
-             calc_type a_val;
-             if (is_symbol(a))
-             {
-                 a_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> a_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(b);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not a literal or symbol.");
-             }
-
-             return calc_option(std::to_string(a_val * b_val));
+         [](Calculator &calc, std::string const a, std::string const b) {
+             return calc_option(std::to_string(calc.get_value(a) * calc.get_value(b)));
          }
         },
         {"/",
-         [](Calculator &calc, std::string a, std::string b) {
-             calc_type a_val;
-             if (is_symbol(a))
-             {
-                 a_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> a_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(b);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
-             }
-
-             return calc_option(std::to_string(a_val / b_val));
+         [](Calculator &calc, std::string const a, std::string const b) {
+             return calc_option(std::to_string(calc.get_value(a) / calc.get_value(b)));
          }
         },
         {"%",
-         [](Calculator &calc, std::string a, std::string b) {
-             calc_type a_val;
-             if (is_symbol(a))
-             {
-                 a_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> a_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(b);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
-             }
-
-             return calc_option(std::to_string(a_val % b_val));
+         [](Calculator &calc, std::string const a, std::string const b) {
+             return calc_option(std::to_string(calc.get_value(a) % calc.get_value(b)));
          }
         }
     },
     {
         {"+",
          [](Calculator &calc, std::string a, std::string b) {
-             calc_type a_val;
-             if (is_symbol(a))
-             {
-                 a_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> a_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(b);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
-             }
-
-             return calc_option(std::to_string(a_val + b_val));
+             return calc_option(std::to_string(calc.get_value(a) + calc.get_value(b)));
          }
         },
         {"-",
          [](Calculator &calc, std::string a, std::string b) {
-             calc_type a_val;
-             if (is_symbol(a))
-             {
-                 a_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(a))
-             {
-                 std::istringstream in(a);
-                 in >> a_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
-             }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(b);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
-             }
-
-             return calc_option(std::to_string(a_val - b_val));
+             return calc_option(std::to_string(calc.get_value(a) - calc.get_value(b)));
          }
         }
     },
@@ -308,25 +96,8 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
                                                       " name. symbols can only contain "
                                                       "alphabetic characters.");
              }
-
-             calc_type b_val;
-             if (is_symbol(b))
-             {
-                 b_val = calc.symbol_table.at(a);
-             }
-             else if (is_literal(b))
-             {
-                 std::istringstream in(b);
-                 in >> b_val;
-             }
-             else
-             {
-                 throw Calculator::calculator_error(b + " is not a literal or symbol.");
-             }
-
-             calc.symbol_table[a] = b_val;
-
-             return calc_option(std::to_string(b_val));
+             calc.symbol_table[a] = calc.get_value(b);
+             return calc_option();
          }
         }
     }
@@ -351,12 +122,13 @@ Calculator::calc_option Calculator::execute(std::string command)
     // TODO: Implement parenthesis (recognize deepest parenthesis, then execute
     //       what's inside first, repeat).
 
-    std::cout << "Parts at the beginning: " << parts << std::endl;
+    Calculator new_state(*this);
+    calc_option ret;
 
-    // First check if any unary operation is present. Unary operations have
-    // higuer priority than binary ones.
     try
     {
+        // First check if any unary operation is present. Unary operations have
+        // higuer priority than binary ones.
         for (auto const& priorities : unary_ops)
         {
             if (parts.size() < 2)
@@ -373,7 +145,7 @@ Calculator::calc_option Calculator::execute(std::string command)
                 if (priorities.find(*it) != priorities.end() &&
                     (it == parts.begin() || is_operator(*std::prev(it))))
                 {
-                    calc_option result = priorities.at(*it)(*this, *std::next(it));
+                    calc_option result = priorities.at(*it)(new_state, *std::next(it));
                     it = parts.erase(it, std::next(it, 2));
                     if (result.has_value())
                     {
@@ -381,7 +153,14 @@ Calculator::calc_option Calculator::execute(std::string command)
                     }
                     else
                     {
-                        throw "Not implemented yet";
+                        // Operations that don't return value must be the last
+                        // ones.
+                        if (!parts.empty())
+                        {
+                            throw calculator_error("Invalid command." );
+                        }
+                        ret = calc_option();
+                        goto exit_execution;
                     }
                 }
 
@@ -391,6 +170,7 @@ Calculator::calc_option Calculator::execute(std::string command)
                 }
             }
         }
+
 
         for (auto const& priorities : binary_ops)
         {
@@ -407,7 +187,7 @@ Calculator::calc_option Calculator::execute(std::string command)
             {
                 if (priorities.find(*it) != priorities.end())
                 {
-                    calc_option result = priorities.at(*it)(*this, *std::prev(it), *std::next(it));
+                    calc_option result = priorities.at(*it)(new_state, *std::prev(it), *std::next(it));
                     it = parts.erase(std::prev(it), std::next(it, 2));
                     if (result.has_value())
                     {
@@ -415,10 +195,44 @@ Calculator::calc_option Calculator::execute(std::string command)
                     }
                     else
                     {
-                        throw "Not implemented yet";
+                        // Operations that don't return value must be the last
+                        // ones.
+                        if (!parts.empty())
+                        {
+                            throw calculator_error("Invalid command." );
+                        }
+                        ret = calc_option();
+                        goto exit_execution;
                     }
                 }
             }
+        }
+
+        if (parts.size() != 1)
+        {
+            throw calculator_error("Something went wrong.");
+        }
+
+        std::string result = parts.front();
+        if (is_symbol(result))
+        {
+            if (symbol_table.count(result) != 0)
+            {
+                ret = calc_option(std::to_string(symbol_table.at(result)));
+            }
+            else
+            {
+                throw calculator_error(" is not defined" );
+            }
+
+        }
+        else if (is_literal(result))
+        {
+            ret = calc_option(result);
+        }
+        else
+        {
+            throw calculator_error(result + " is not a symbol or literal.");
         }
     }
     catch (calculator_error const& ce)
@@ -427,37 +241,9 @@ Calculator::calc_option Calculator::execute(std::string command)
         return calc_option();
     }
 
-    std::cout << "Parts at the end: " << parts << std::endl;
-
-    if (parts.size() != 1)
-    {
-        std::cerr << "Something went wrong." << std::endl;
-        return calc_option();
-    }
-
-    std::string result = parts.front();
-    if (is_symbol(result))
-    {
-        if (symbol_table.count(result) != 0)
-        {
-            return calc_option(std::to_string(symbol_table.at(result)));
-        }
-        else
-        {
-            std::cerr << result << " is not defined" << std::endl;
-            return calc_option();   
-        }
-        
-    }
-    else if (is_literal(result))
-    {
-        return calc_option(result);
-    }
-    else
-    {
-        std::cerr << result << " is not a symbol or literal" << std::endl;
-        return calc_option();
-    }
+    exit_execution:
+    *this = new_state;
+    return ret;
 }
 
 std::list<std::string> Calculator::tokenize(std::string s)
@@ -542,4 +328,30 @@ bool Calculator::is_operator(std::string s)
     }();
 
     return operator_tokens.count(s) != 0;
+}
+
+Calculator::calc_type Calculator::get_value(std::string s) const
+{
+    if (is_symbol(s))
+    {
+        try
+        {
+            return symbol_table.at(s);
+        }
+        catch (std::out_of_range const&)
+        {
+            throw Calculator::calculator_error(s + " is not defined.");
+        }
+    }
+    else if (is_literal(s))
+    {
+        Calculator::calc_type ret;
+        std::istringstream in(s);
+        in >> ret;
+        return ret;
+    }
+    else
+    {
+        throw Calculator::calculator_error(s + " is not a literal or symbol");
+    }
 }
