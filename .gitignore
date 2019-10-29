@@ -1,0 +1,8 @@
+# Build directory
+/build
+
+# Scons
+.sconsign.dblite
+
+# Visual Studio Code
+.vscode/
