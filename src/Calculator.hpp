@@ -41,14 +41,15 @@ private:
     static std::vector<std::map<std::string, std::function<calc_option(Calculator&, std::string)>>> const unary_ops;
     static std::vector<std::map<std::string, std::function<calc_option(Calculator&, std::string, std::string)>>> const binary_ops;
 
-    static std::vector<std::string> reserved_words;
-
 private:
     std::map<std::string, calc_type> symbol_table;
 
 public:
     Calculator() = default;
+    Calculator(Calculator const& other);
     ~Calculator() = default;
+
+    Calculator& operator=(Calculator const& other);
 
     calc_option execute(std::string command);
 
@@ -59,6 +60,8 @@ private:
     static bool is_symbol(std::string s);
     static bool is_literal(std::string s);
     static bool is_operator(std::string s);
+
+    calc_type get_value(std::string s) const;
 };
 
 #endif
