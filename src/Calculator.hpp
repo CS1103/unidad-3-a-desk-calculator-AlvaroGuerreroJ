@@ -3,13 +3,35 @@
 
 #include <functional>
 #include <list>
+#include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 class Calculator
 {
+public:
+    class calculator_error : public std::runtime_error
+    {
+public:
+        calculator_error(char const* msg)
+            : std::runtime_error(msg)
+        {
+        }
+
+        calculator_error(std::string const& msg)
+            : std::runtime_error(msg)
+        {
+        }
+
+        char const* what() const throw()
+        {
+            return std::runtime_error::what();;
+        }
+    };
+
 private:
     using calc_type = long;
     using calc_option = std::optional<std::string>;

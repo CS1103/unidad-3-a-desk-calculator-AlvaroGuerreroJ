@@ -36,7 +36,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
              return calc_option(std::to_string(-temp));
          }
@@ -55,7 +55,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
              return calc_option(std::to_string(~temp));
             }
@@ -74,7 +74,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
              return calc_option(std::to_string(temp));
             }
@@ -98,7 +98,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
 
              calc_type b_val;
@@ -113,7 +113,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not a literal or symbol.");
              }
 
              return calc_option(std::to_string(Calculator::calc_type(std::pow(a_val, b_val))));
@@ -135,7 +135,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
 
              calc_type b_val;
@@ -150,7 +150,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not a literal or symbol.");
              }
 
              return calc_option(std::to_string(a_val * b_val));
@@ -170,7 +170,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
 
              calc_type b_val;
@@ -185,7 +185,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not b literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
              }
 
              return calc_option(std::to_string(a_val / b_val));
@@ -205,7 +205,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
 
              calc_type b_val;
@@ -220,7 +220,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not b literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
              }
 
              return calc_option(std::to_string(a_val % b_val));
@@ -242,7 +242,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
 
              calc_type b_val;
@@ -257,7 +257,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not b literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
              }
 
              return calc_option(std::to_string(a_val + b_val));
@@ -277,7 +277,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(a + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(a + " is not a literal or symbol.");
              }
 
              calc_type b_val;
@@ -292,7 +292,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not b literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not b literal or symbol.");
              }
 
              return calc_option(std::to_string(a_val - b_val));
@@ -304,7 +304,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
          [](Calculator &calc, std::string a, std::string b) {
              if (!is_symbol(a))
              {
-                 throw std::runtime_error(a + " is not a valid symbol"
+                 throw Calculator::calculator_error(a + " is not a valid symbol"
                                                       " name. symbols can only contain "
                                                       "alphabetic characters.");
              }
@@ -321,7 +321,7 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
              }
              else
              {
-                 throw std::runtime_error(b + " is not a literal or symbol.");
+                 throw Calculator::calculator_error(b + " is not a literal or symbol.");
              }
 
              calc.symbol_table[a] = b_val;
@@ -355,71 +355,85 @@ Calculator::calc_option Calculator::execute(std::string command)
 
     // First check if any unary operation is present. Unary operations have
     // higuer priority than binary ones.
-    for (auto const& priorities : unary_ops)
+    try
     {
-        if (parts.size() < 2)
+        for (auto const& priorities : unary_ops)
         {
-            break;
-        }
-
-        // All of our unary operations take the argument to the right of
-        // them.
-        for (auto it = std::prev(parts.end());; it--)
-        {
-            // We must make sure that the argument to the left (if any) is
-            // not a symbol or literal.
-            if (priorities.find(*it) != priorities.end() &&
-                (it == parts.begin() || is_operator(*std::prev(it))))
-            {
-                calc_option result = priorities.at(*it)(*this, *std::next(it));
-                it = parts.erase(it, std::next(it, 2));
-                if (result.has_value())
-                {
-                    it = parts.insert(it, result.value());
-                }
-                else
-                {
-                    throw "Not implemented yet";
-                }
-            }
-
-            if (it == parts.begin())
+            if (parts.size() < 2)
             {
                 break;
             }
-        }
-    }
 
-    for (auto const& priorities : binary_ops)
-    {
-        if (parts.size() < 3)
-        {
-            break;
-        }
-
-        // Binary operations take two arguments around them.
-        for (auto it = std::next(parts.begin());
-             std::distance(parts.begin(), it) >= 1 &&
-             std::distance(it, parts.end()) >= 2;
-             it++)
-        {
-            if (priorities.find(*it) != priorities.end())
+            // All of our unary operations take the argument to the right of
+            // them.
+            for (auto it = std::prev(parts.end());; it--)
             {
-                calc_option result = priorities.at(*it)(*this, *std::prev(it), *std::next(it));
-                it = parts.erase(std::prev(it), std::next(it, 2));
-                if (result.has_value())
+                // We must make sure that the argument to the left (if any) is
+                // not a symbol or literal.
+                if (priorities.find(*it) != priorities.end() &&
+                    (it == parts.begin() || is_operator(*std::prev(it))))
                 {
-                    it = parts.insert(it, result.value());
+                    calc_option result = priorities.at(*it)(*this, *std::next(it));
+                    it = parts.erase(it, std::next(it, 2));
+                    if (result.has_value())
+                    {
+                        it = parts.insert(it, result.value());
+                    }
+                    else
+                    {
+                        throw "Not implemented yet";
+                    }
                 }
-                else
+
+                if (it == parts.begin())
                 {
-                    throw "Not implemented yet";
+                    break;
+                }
+            }
+        }
+
+        for (auto const& priorities : binary_ops)
+        {
+            if (parts.size() < 3)
+            {
+                break;
+            }
+
+            // Binary operations take two arguments around them.
+            for (auto it = std::next(parts.begin());
+                std::distance(parts.begin(), it) >= 1 &&
+                std::distance(it, parts.end()) >= 2;
+                it++)
+            {
+                if (priorities.find(*it) != priorities.end())
+                {
+                    calc_option result = priorities.at(*it)(*this, *std::prev(it), *std::next(it));
+                    it = parts.erase(std::prev(it), std::next(it, 2));
+                    if (result.has_value())
+                    {
+                        it = parts.insert(it, result.value());
+                    }
+                    else
+                    {
+                        throw "Not implemented yet";
+                    }
                 }
             }
         }
     }
+    catch (calculator_error const& ce)
+    {
+        std::cerr << ce.what() << std::endl;
+        return calc_option();
+    }
 
     std::cout << "Parts at the end: " << parts << std::endl;
+
+    if (parts.size() != 1)
+    {
+        std::cerr << "Something went wrong." << std::endl;
+        return calc_option();
+    }
 
     std::string result = parts.front();
     if (is_symbol(result))
@@ -441,7 +455,7 @@ Calculator::calc_option Calculator::execute(std::string command)
     }
     else
     {
-        std::cerr << "Something went wrong." << std::endl;
+        std::cerr << result << " is not a symbol or literal" << std::endl;
         return calc_option();
     }
 }
