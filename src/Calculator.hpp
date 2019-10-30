@@ -7,6 +7,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -41,6 +42,8 @@ private:
     static std::vector<std::map<std::string, std::function<calc_option(Calculator&, std::string)>>> const unary_ops;
     static std::vector<std::map<std::string, std::function<calc_option(Calculator&, std::string, std::string)>>> const binary_ops;
 
+    static std::unordered_set<std::string> operators_tokens;
+
 private:
     std::map<std::string, calc_type> symbol_table;
 
@@ -51,6 +54,7 @@ public:
 
     Calculator& operator=(Calculator const& other);
 
+    calc_option execute(std::list<std::string> parts);
     calc_option execute(std::string command);
 
 private:

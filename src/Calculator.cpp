@@ -1,13 +1,14 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <iostream>
 #include <functional>
+#include <iostream>
 #include <list>
 #include <map>
 #include <optional>
 #include <regex>
 #include <sstream>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -103,6 +104,32 @@ std::vector<std::map<std::string, std::function<Calculator::calc_option(Calculat
     }
 };
 
+std::unordered_set<std::string> Calculator::operators_tokens = [](){
+    std::unordered_set<std::string> ret;
+
+    for (auto const& priority_level : unary_ops)
+    {
+        for (auto const& op : priority_level)
+        {
+            ret.insert(op.first);
+        }
+    }
+
+    for (auto const& priority_level : binary_ops)
+    {
+        for (auto const& op : priority_level)
+        {
+            ret.insert(op.first);
+        }
+    }
+
+    // Parenthesis are not operators but should be reserved nonetheless.
+    ret.insert("(");
+    ret.insert(")");
+
+    return ret;
+}();
+
 std::string strip(std::string stripping, std::string to_strip)
 {
     std::unordered_set<char> strip_set(to_strip.begin(), to_strip.end());
@@ -117,16 +144,65 @@ std::string strip(std::string stripping, std::string to_strip)
 
 Calculator::calc_option Calculator::execute(std::string command)
 {
-    std::list<std::string> parts = tokenize(command);
+    std::list<std::string> tokenized;
+    try
+    {
+        tokenized = tokenize(command);
+    }
+    catch (calculator_error const& ce)
+    {
+        std::cerr << ce.what() << std::endl;
+        return calc_option();
+    }
+    return execute(tokenized);
+}
 
-    // TODO: Implement parenthesis (recognize deepest parenthesis, then execute
-    //       what's inside first, repeat).
-
+Calculator::calc_option Calculator::execute(std::list<std::string> parts)
+{
     Calculator new_state(*this);
     calc_option ret;
 
     try
     {
+        std::stack<std::list<std::string>::iterator> parenthesis;
+        auto it = parts.begin();
+        while (it != parts.end())
+        {
+            if (*it == "(")
+            {
+                parenthesis.push(it);
+            }
+            else if (*it == ")")
+            {
+                if (parenthesis.empty())
+                {
+                    throw calculator_error("Unbalanced parenthesis");
+                }
+
+                auto temp = execute(std::list<std::string>(std::next(parenthesis.top()), it));
+                it = parts.erase(parenthesis.top(), std::next(it));
+                parenthesis.pop();
+
+                if (!temp.has_value())
+                {
+                    if (parts.empty())
+                    {
+                        ret = calc_option();
+                        goto exit_execution;
+                    }
+                    throw calculator_error("Invalid operation.");
+                }
+
+                it = parts.insert(it, temp.value());
+            }
+            it++;
+        }
+        // There must be no parenthesis left to match
+        if (!parenthesis.empty())
+        {
+            throw calculator_error("Unbalanced parenthesis");
+        }
+
         // First check if any unary operation is present. Unary operations have
         // higuer priority than binary ones.
         for (auto const& priorities : unary_ops)
@@ -157,7 +233,7 @@ Calculator::calc_option Calculator::execute(std::string command)
                         // ones.
                         if (!parts.empty())
                         {
-                            throw calculator_error("Invalid command." );
+                            throw calculator_error("Invalid command.");
                         }
                         ret = calc_option();
                         goto exit_execution;
@@ -199,7 +275,7 @@ Calculator::calc_option Calculator::execute(std::string command)
                         // ones.
                         if (!parts.empty())
                         {
-                            throw calculator_error("Invalid command." );
+                            throw calculator_error("Invalid command.");
                         }
                         ret = calc_option();
                         goto exit_execution;
@@ -253,17 +329,18 @@ std::list<std::string> Calculator::tokenize(std::string s)
     auto it = s.begin();
     while (it != s.end())
     {
+        // Skip whitespace
         if (isspace(*it))
         {
             it = std::find_if_not(it, s.end(),
-                                  [](char c) {
+                                  [](char c){
                                       return isspace(c);
                                   });
         }
         else if (std::isalpha(*it))
         {
             auto temp = std::find_if_not(it, s.end(),
-                                         [](char c) {
+                                         [](char c){
                                              return std::isalnum(c);
                                          });
             ret.push_back(std::string(it, temp));
@@ -272,20 +349,33 @@ std::list<std::string> Calculator::tokenize(std::string s)
         else if (std::ispunct(*it))
         {
             auto temp = std::find_if_not(it, s.end(),
-                                         [](char c) {
+                                         [](char c){
                                              return std::ispunct(c);
                                          });
+            while (operators_tokens.count(std::string(it, temp)) == 0 && it != temp)
+            {
+                temp--;
+            }
+            if (temp == it)
+            {
+                throw calculator_error("Invalid operator used.");
+            }
+
             ret.push_back(std::string(it, temp));
             it = temp;
         }
         else if (std::isdigit(*it))
         {
             auto temp = std::find_if_not(it, s.end(),
-                                         [](char c) {
+                                         [](char c){
                                              return std::isdigit(c);
                                          });
             ret.push_back(std::string(it, temp));
             it = temp;
+        }
+        else
+        {
+            throw calculator_error("Invalid command");
         }
     }
 
@@ -306,28 +396,7 @@ bool Calculator::is_literal(std::string s)
 
 bool Calculator::is_operator(std::string s)
 {
-    static auto const& unary_ops = Calculator::unary_ops;
-    static auto const& binary_ops = Calculator::binary_ops;
-    static std::unordered_set<std::string> operator_tokens = [](){
-        std::unordered_set<std::string> ret;
-        for (auto const& priority_level : unary_ops)
-        {
-            for (auto const& op : priority_level)
-            {
-                ret.insert(op.first);
-            }
-        }
-        for (auto const& priority_level : binary_ops)
-        {
-            for (auto const& op : priority_level)
-            {
-                ret.insert(op.first);
-            }
-        }
-        return ret;
-    }();
-
-    return operator_tokens.count(s) != 0;
+    return operators_tokens.count(s) != 0;
 }
 
 Calculator::calc_type Calculator::get_value(std::string s) const
