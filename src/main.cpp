@@ -14,6 +14,7 @@ int main()
     Calculator calc;
 
     char const* command;
+    rl_bind_key('\t', rl_insert);
     while ((command = readline(">>> ")) != nullptr)
     {
         auto temp = calc.execute(command);
